@@ -80,7 +80,7 @@ parser.interactive_parser
 ```
 
 Run this script and typing `'///'` for branch to 'comment-line' state. Then type `'\n'` or `'\r'` for leave this state.
-**NOTE**: Type `'\\'` for input `'\'`. Check each state.
+**NOTE**: Type `'\\'` for input `'\'`. Check each state. Press <enter> (input empty string) to leave interactive mode.
 After successfully check, add the following code to the beginning of the file:
 
 *source № 2*:
@@ -145,9 +145,141 @@ $fout.puts "</body>"
 $fout.puts "</html>"
 $fout.close
 ```
-Now developing of the simple parser has been finished. You can create test file, for example 'test.c':
+
+And add this code (*source № 4*) before `addstate` method call.
 
 *source № 4*:
+```ruby
+#
+# Add handlers for states.
+#
+ps_cline.init( method(:doc_init) )
+ps_cline.handler( method(:doc_handler) )
+ps_cline.fini( method(:doc_fini) )
+
+ps_cblock.init( method(:doc_init) )
+ps_cblock.handler( method(:doc_handler) )
+ps_cblock.fini( method(:doc_fini) )
+```
+
+The result is a file with the following content.
+
+*source № 5*:
+```ruby
+require 'iparser'
+
+#
+# Simple check startup arguments.
+#
+if( ARGV.size != 1 || !File.exist?(ARGV[0]) )
+  puts
+  puts "ERROR: unable to open file #{ARGV[0]}"
+  puts
+  exit
+end
+#
+# Create output file.
+#
+$fout = File.new( 'index.html', 'w' )
+
+#
+# Create initializer method for parser-states.
+#
+def doc_init ( str )
+  $fout.print "<p>"
+end
+#
+# Create handler method for parser-states.
+#
+def doc_handler ( c )
+  $fout.print c
+end
+#
+# Create finalizer method for parser-states.
+#
+def doc_fini ( str )
+  $fout.puts "</p>"
+end
+
+#
+# Create parser-machine object.
+#
+parser = Iparser::Machine.new
+
+#
+# Create startup state for this parser-machine.
+#
+ps_idle = Iparser::State.new('idle')
+
+#
+# Add branch indexes to 'comment-line' and 'comment-block' state.
+#
+ps_idle.branches << 1
+ps_idle.branches << 2
+
+#
+# Create single line comment state for this parser-machine.
+#
+ps_cline = Iparser::State.new('comment-line')
+ps_cline.entry << /\//
+ps_cline.entry << /\//
+ps_cline.entry << /\//
+ps_cline.leave << /[\n\r]/
+
+#
+# Create multiline comment state for this parser-machine.
+#
+ps_cblock = Iparser::State.new('comment-block')
+ps_cblock.entry << /\//
+ps_cblock.entry << /\*/
+ps_cblock.entry << /\*/
+ps_cblock.leave << /\*/
+ps_cblock.leave << /\//
+ps_cblock.ignore << '*'
+
+#
+# Add handlers for states.
+#
+ps_cline.init( method(:doc_init) )
+ps_cline.handler( method(:doc_handler) )
+ps_cline.fini( method(:doc_fini) )
+
+ps_cblock.init( method(:doc_init) )
+ps_cblock.handler( method(:doc_handler) )
+ps_cblock.fini( method(:doc_fini) )
+
+#
+# Add all states to parser-machine.
+#
+parser.addstate ps_idle
+parser.addstate ps_cline
+parser.addstate ps_cblock
+
+#
+# Call parser startup method.
+#
+parser.prestart
+
+#
+# Call interactive mode for check state-machine.
+#
+$fout.puts "<html>"
+$fout.puts "<body>"
+
+File.open( ARGV[0], 'r' ).each do |line|
+  line.each_char do |c|
+    parser.parse(c)
+  end
+end
+
+$fout.puts "</body>"
+$fout.puts "</html>"
+$fout.close
+```
+
+Now developing of the simple parser has been finished. You can create test file, for example 'test.c':
+
+*source № 6*:
 ```
 #include <stdlib.h>
 
@@ -184,13 +316,15 @@ After work, we should see a file named 'index.html'.
 Для чего введем строку символов `///` и увидим что наш парсер вывел `branch to <comment-line>`, это говорит
 о том, что парсер перешол в состояние для обработки однострочных комментариев, т.е. в состояние `comment-line`.
 Теперь введем `\n` или `\r` и увидим что парсер покинул состояние `comment-line` и вернулся в состояние `idle`.
-Аналогично проведем проверку для всех оставшихся состояний.
+Аналогично проведем проверку для всех оставшихся состояний. Для выхода из интерактивного режима просто введите
+<Enter>, т.е. пустую строку.
 
 **NOTE**: для ввода символа `'\'` необходимо набрать `'\\'`.
 
 Если все переходы работают как мы и ожидали, то
 можно перейти к написанию обработчиков наших состояний. Для этого допишем в наш скрипт код из *source № 2*
-в начало файла и вместо строки `parser.interactive_parser` добавим код из *source № 3*.
+в начало файла и вместо строки `parser.interactive_parser` добавим код из *source № 3* и *source № 4*.
+В результате должен получится код как на *source № 5*.
 
 Метод `doc_init` будет вызываться при входе в состояние, т.е. является конструктором состояния.
 Метод `doc_handler` будет вызываться каждый раз, до тех пор пока парсер находится в состоянии `comment-line` или `comment-block`.
@@ -203,7 +337,7 @@ After work, we should see a file named 'index.html'.
 Дополнительно для состояния `comment-block` мы указали символы, которые надо игнорировать,
 а именно `'*'` и `doc_handler` не будет вызываться при наличия данного символа во входном потоке.
 
-И наконец создадим тестовый файл с именем 'test.c' и наполним его содержимым из *source № 4*.
+И наконец создадим тестовый файл с именем 'test.c' и наполним его содержимым из *source № 6*.
 Наш простой парсер готов. Теперь запустим его набрав следующую команду:
 
     $ ruby parser_example.rb test.c
