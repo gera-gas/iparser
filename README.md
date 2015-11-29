@@ -8,7 +8,7 @@ Used for simple and fast create your specific parsers.
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'parser'
+gem 'Iparser'
 ```
 
 And then execute:
@@ -17,7 +17,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install parser
+    $ gem install iparser
 
 ## Usage
 
@@ -25,6 +25,8 @@ For example usage, present here very simple parser for automatically generate do
 
 *source № 1*:
 ```ruby
+require 'iparser'
+
 #
 # Create parser-machine object.
 #
@@ -80,7 +82,7 @@ parser.interactive_parser
 ```
 
 Run this script and typing `'///'` for branch to 'comment-line' state. Then type `'\n'` or `'\r'` for leave this state.
-**NOTE**: Type `'\\'` for input `'\'`. Check each state. Press <enter> (input empty string) to leave interactive mode.
+**NOTE**: Type `'\\'` for input `'\'`. Check each state. Press `enter` (input empty string) to leave interactive mode.
 After successfully check, add the following code to the beginning of the file:
 
 *source № 2*:
@@ -126,7 +128,7 @@ Handler may be return following data types: `Fixnum` - index to branch (>=0),
 `NilClass` - hold current state (nil) and any data types for break parse (error, method `parse`
 return `false`).
 
-For `comment-block` state set ignore char - '*', and handler don't called to this chars.
+For `comment-block` state set ignore char - `*`, and handler don't called to this chars.
 
 Add the following code instead `parser.interactive_parser`:
 
@@ -317,7 +319,7 @@ After work, we should see a file named 'index.html'.
 о том, что парсер перешол в состояние для обработки однострочных комментариев, т.е. в состояние `comment-line`.
 Теперь введем `\n` или `\r` и увидим что парсер покинул состояние `comment-line` и вернулся в состояние `idle`.
 Аналогично проведем проверку для всех оставшихся состояний. Для выхода из интерактивного режима просто введите
-<Enter>, т.е. пустую строку.
+`Enter`, т.е. пустую строку.
 
 **NOTE**: для ввода символа `'\'` необходимо набрать `'\\'`.
 
