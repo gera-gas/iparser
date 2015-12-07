@@ -42,6 +42,11 @@ parser.addstate ps_idle
 parser.addstate ps_cline
 parser.addstate ps_cblock
 
+# Add branch indexes to 'comment-line' and 'comment-block' state.
+# From 'idle' we can branch to 'comment-line' or 'comment-block' states.
+ps_idle.branches << parser.state_index( ps_cline )
+ps_idle.branches << parser.state_index( ps_cblock )
+
 # Describe 'comment-line' state.
 # Set template for entry this state (String or Regexp).
 ps_cline.entry << '/'
@@ -49,14 +54,6 @@ ps_cline.entry << '/'
 ps_cline.entry << '/'
 # Set template for leave this state (String or Regexp).
 ps_cline.leave << /[\n\r]/
-# Add handler to 'commaent-line' state.
-ps_cline.init( method(:doc_init) )
-ps_cline.handler( method(:doc_handler) )
-ps_cline.fini( method(:doc_fini) )
-# Add branch indexes to 'comment-line' and 'comment-block' state.
-# From 'idle' we can branch to 'comment-line' or 'comment-block' states.
-ps_idle.branches << parser.state_index( ps_cline )
-ps_idle.branches << parser.state_index( ps_cblock )
 
 # Describe 'comment-block' state.
 # Set template for entry this state (String or Regexp).
@@ -83,15 +80,15 @@ Check each state.
 **NOTE**: Type `'\\'` for input `'\'`.
 
 Each state has the following templates:
-1. __entry__  - used for set condition (template) to entry state.
-2. __leave__  - used for set condition (template) to leave state (return to previous state).
-3. __ignore__ - used for set symbols to ignoring.
+* `entry`  - used for set condition (template) to entry state.
+* `leave`  - used for set condition (template) to leave state (return to previous state).
+* `ignore` - used for set symbols to ignoring.
  
 After successfully check, you can add handler to each state.
 Each state has the following handlers:
-1. __init__ - is state contructor (called when entry to state).
-2. __fini__ - is state destructor (called when leave state).
-3. __handler__ - is state handler (called every time, is still in state).
+* `init` - is state contructor (called when entry to state).
+* `fini` - is state destructor (called when leave state).
+* `handler` - is state handler (called every time, is still in state).
 
 Each handler can return the following values: __nil__ - nothing is done (method `.parse` return `true`)
 and __any__ values for break parsing (method `.parse` return `false`). For break parsing process you
@@ -131,15 +128,15 @@ $fout = File.new( 'index.html', 'w' )
 
 # Create initializer method for parser-states.
 def doc_init ( str )
-  $fout.print "<p>"
+  $fout.print "<p>"; return nil
 end
 # Create handler method for parser-states.
 def doc_handler ( c )
-  $fout.print c
+  $fout.print c; return nil
 end
 # Create finalizer method for parser-states.
 def doc_fini ( str )
-  $fout.puts "</p>"
+  $fout.puts "</p>"; return nil
 end
 
 # Create parser-machine object.
@@ -156,6 +153,11 @@ parser.addstate ps_idle
 parser.addstate ps_cline
 parser.addstate ps_cblock
 
+# Add branch indexes to 'comment-line' and 'comment-block' state.
+# From 'idle' we can branch to 'comment-line' or 'comment-block' states.
+ps_idle.branches << parser.state_index( ps_cline )
+ps_idle.branches << parser.state_index( ps_cblock )
+
 # Describe 'comment-line' state.
 # Set template for entry this state (String or Regexp).
 ps_cline.entry << '/'
@@ -167,10 +169,6 @@ ps_cline.leave << /[\n\r]/
 ps_cline.init( method(:doc_init) )
 ps_cline.handler( method(:doc_handler) )
 ps_cline.fini( method(:doc_fini) )
-# Add branch indexes to 'comment-line' and 'comment-block' state.
-# From 'idle' we can branch to 'comment-line' or 'comment-block' states.
-ps_idle.branches << parser.state_index( ps_cline )
-ps_idle.branches << parser.state_index( ps_cblock )
 
 # Describe 'comment-block' state.
 # Set template for entry this state (String or Regexp).
