@@ -1,6 +1,6 @@
 # Iparser
 
-Universal parser machine to generate your specific parsers.
+Universal parser machine to generate your specific parsers (Parser engine).
 Used for simple and fast create your specific parsers.
 
 ## Installation
@@ -22,249 +22,174 @@ Or install it yourself as:
 ## Usage
 
 For example usage, present here very simple parser for automatically generate documentation from source code.
+Create file 'parser_example.rb' and copy the contents from the file *source № 1*.
 
 *source № 1*:
 ```ruby
 require 'iparser'
 
-#
 # Create parser-machine object.
-#
 parser = Iparser::Machine.new
-
-#
 # Create startup state for this parser-machine.
-#
 ps_idle = Iparser::State.new('idle')
-
-#
-# Add branch indexes to 'comment-line' and 'comment-block' state.
-#
-ps_idle.branches << 1
-ps_idle.branches << 2
-
-#
 # Create single line comment state for this parser-machine.
-#
 ps_cline = Iparser::State.new('comment-line')
-ps_cline.entry << /\//
-ps_cline.entry << /\//
-ps_cline.entry << /\//
-ps_cline.leave << /[\n\r]/
-
-#
 # Create multiline comment state for this parser-machine.
-#
 ps_cblock = Iparser::State.new('comment-block')
-ps_cblock.entry << /\//
-ps_cblock.entry << /\*/
-ps_cblock.entry << /\*/
-ps_cblock.leave << /\*/
-ps_cblock.leave << /\//
-ps_cblock.ignore << '*'
 
-#
 # Add all states to parser-machine.
-#
 parser.addstate ps_idle
 parser.addstate ps_cline
 parser.addstate ps_cblock
 
-#
-# Call parser startup method.
-#
-parser.prestart
+# Describe 'comment-line' state.
+# Set template for entry this state (String or Regexp).
+ps_cline.entry << '/'
+ps_cline.entry << '/'
+ps_cline.entry << '/'
+# Set template for leave this state (String or Regexp).
+ps_cline.leave << /[\n\r]/
+# Add handler to 'commaent-line' state.
+ps_cline.init( method(:doc_init) )
+ps_cline.handler( method(:doc_handler) )
+ps_cline.fini( method(:doc_fini) )
+# Add branch indexes to 'comment-line' and 'comment-block' state.
+# From 'idle' we can branch to 'comment-line' or 'comment-block' states.
+ps_idle.branches << parser.state_index( ps_cline )
+ps_idle.branches << parser.state_index( ps_cblock )
 
-#
+# Describe 'comment-block' state.
+# Set template for entry this state (String or Regexp).
+ps_cblock.entry << '/'
+ps_cblock.entry << '*'
+ps_cblock.entry << '*'
+# Set template for leave this state (String or Regexp).
+ps_cblock.leave << '*'
+ps_cblock.leave << '/'
+# Set template for ignore this state (String format only).
+ps_cblock.ignore << '*'
+
+# Call parser startup method.
+parser.prestart
 # Call interactive mode for check state-machine.
-#
 parser.interactive_parser
 ```
 
-Run this script and typing `'///'` for branch to 'comment-line' state. Then type `'\n'` or `'\r'` for leave this state.
-**NOTE**: Type `'\\'` for input `'\'`. Check each state. Press `enter` (input empty string) to leave interactive mode.
-After successfully check, add the following code to the beginning of the file:
+Run this script `ruby parser_example.rb` and typing `'///'` for branch to 'comment-line' state.
+Then type `'\n'` or `'\r'` for leave this state.
+Press `enter` (input empty string) to leave interactive mode.
+Check each state.
+
+**NOTE**: Type `'\\'` for input `'\'`.
+
+Each state has the following templates:
+ 1 __entry__  - used for set condition (template) to entry state.
+ 2 __leave__  - used for set condition (template) to leave state (return to previous state).
+ 3 __ignore__ - used for set symbols to ignoring.
+ 
+After successfully check, you can add handler to each state.
+Each state has the following handlers:
+ 1 __init__ - is state contructor (called when entry to state).
+ 2 __fini__ - is state destructor (called when leave state).
+ 3 __handler__ - is state handler (called every time, is still in state).
+
+Each handler can return the following values: __nil__ - nothing is done (method `.parse` return `true`)
+and __any__ values for break parsing (method `.parse` return `false`). For break parsing process you
+should check return value of `.parse` method. For example:
+```ruby
+parser = Iparser::Machine.new
+'123asd'.each_char do |c|
+  exit if !parser.parse(c)
+end
+```
+Also each state have a `branches` field. Use the `branches` to add the index state,
+which is a possible jump.
+
+We create the following handlers:
+
+* Method `doc_init` is state destructor.
+* Method `doc_handler` is state handler and call in `comment-line` or `comment-block` for each input char.
+* Method `doc_fini` is state destructor.
+
+For `comment-block` state set ignore char - `*`, and handler don't called to this chars.
+The result is a file with the following content of 'parser_example.rb':
 
 *source № 2*:
 ```ruby
-#
-# Simple check startup arguments.
-#
-if( ARGV.size != 1 || !File.exist?(ARGV[0]) )
-  puts
-  puts "ERROR: unable to open file #{ARGV[0]}"
-  puts
-  exit
-end
-#
-# Create output file.
-#
-$fout = File.new( 'index.html', 'w' )
-
-#
-# Create initializer method for parser-states.
-#
-def doc_init ( str )
-  $fout.print "<p>"
-end
-#
-# Create handler method for parser-states.
-#
-def doc_handler ( c )
-  $fout.print c
-end
-#
-# Create finalizer method for parser-states.
-#
-def doc_fini ( str )
-  $fout.puts "</p>"
-end
-```
-Method `doc_init` is state contructor.
-Method `doc_handler` is state handler and call in `comment-line` or `comment-block` for each input char.
-Method `doc_fini` is state destructor.
-
-Handler may be return following data types: `Fixnum` - index to branch (>=0),
-`NilClass` - hold current state (nil) and any data types for break parse (error, method `parse`
-return `false`).
-
-For `comment-block` state set ignore char - `*`, and handler don't called to this chars.
-
-Add the following code instead `parser.interactive_parser`:
-
-*source № 3*:
-```ruby
-$fout.puts "<html>"
-$fout.puts "<body>"
-
-File.open( ARGV[0], 'r' ).each do |line|
-  line.each_char do |c|
-    parser.parse(c)
-  end
-end
-
-$fout.puts "</body>"
-$fout.puts "</html>"
-$fout.close
-```
-
-And add this code (*source № 4*) before `addstate` method call.
-
-*source № 4*:
-```ruby
-#
-# Add handlers for states.
-#
-ps_cline.init( method(:doc_init) )
-ps_cline.handler( method(:doc_handler) )
-ps_cline.fini( method(:doc_fini) )
-
-ps_cblock.init( method(:doc_init) )
-ps_cblock.handler( method(:doc_handler) )
-ps_cblock.fini( method(:doc_fini) )
-```
-
-The result is a file with the following content.
-
-*source № 5*:
-```ruby
 require 'iparser'
 
-#
 # Simple check startup arguments.
-#
 if( ARGV.size != 1 || !File.exist?(ARGV[0]) )
   puts
   puts "ERROR: unable to open file #{ARGV[0]}"
   puts
   exit
 end
-#
+
 # Create output file.
-#
 $fout = File.new( 'index.html', 'w' )
 
-#
 # Create initializer method for parser-states.
-#
 def doc_init ( str )
   $fout.print "<p>"
 end
-#
 # Create handler method for parser-states.
-#
 def doc_handler ( c )
   $fout.print c
 end
-#
 # Create finalizer method for parser-states.
-#
 def doc_fini ( str )
   $fout.puts "</p>"
 end
 
-#
 # Create parser-machine object.
-#
 parser = Iparser::Machine.new
-
-#
 # Create startup state for this parser-machine.
-#
 ps_idle = Iparser::State.new('idle')
-
-#
-# Add branch indexes to 'comment-line' and 'comment-block' state.
-#
-ps_idle.branches << 1
-ps_idle.branches << 2
-
-#
 # Create single line comment state for this parser-machine.
-#
 ps_cline = Iparser::State.new('comment-line')
-ps_cline.entry << /\//
-ps_cline.entry << /\//
-ps_cline.entry << /\//
-ps_cline.leave << /[\n\r]/
-
-#
 # Create multiline comment state for this parser-machine.
-#
 ps_cblock = Iparser::State.new('comment-block')
-ps_cblock.entry << /\//
-ps_cblock.entry << /\*/
-ps_cblock.entry << /\*/
-ps_cblock.leave << /\*/
-ps_cblock.leave << /\//
-ps_cblock.ignore << '*'
 
-#
-# Add handlers for states.
-#
-ps_cline.init( method(:doc_init) )
-ps_cline.handler( method(:doc_handler) )
-ps_cline.fini( method(:doc_fini) )
-
-ps_cblock.init( method(:doc_init) )
-ps_cblock.handler( method(:doc_handler) )
-ps_cblock.fini( method(:doc_fini) )
-
-#
 # Add all states to parser-machine.
-#
 parser.addstate ps_idle
 parser.addstate ps_cline
 parser.addstate ps_cblock
 
-#
+# Describe 'comment-line' state.
+# Set template for entry this state (String or Regexp).
+ps_cline.entry << '/'
+ps_cline.entry << '/'
+ps_cline.entry << '/'
+# Set template for leave this state (String or Regexp).
+ps_cline.leave << /[\n\r]/
+# Add handler to 'commaent-line' state.
+ps_cline.init( method(:doc_init) )
+ps_cline.handler( method(:doc_handler) )
+ps_cline.fini( method(:doc_fini) )
+# Add branch indexes to 'comment-line' and 'comment-block' state.
+# From 'idle' we can branch to 'comment-line' or 'comment-block' states.
+ps_idle.branches << parser.state_index( ps_cline )
+ps_idle.branches << parser.state_index( ps_cblock )
+
+# Describe 'comment-block' state.
+# Set template for entry this state (String or Regexp).
+ps_cblock.entry << '/'
+ps_cblock.entry << '*'
+ps_cblock.entry << '*'
+# Set template for leave this state (String or Regexp).
+ps_cblock.leave << '*'
+ps_cblock.leave << '/'
+# Set template for ignore this state (String format only).
+ps_cblock.ignore << '*'
+# Add handler to 'commaent-block' state.
+ps_cblock.init( method(:doc_init) )
+ps_cblock.handler( method(:doc_handler) )
+ps_cblock.fini( method(:doc_fini) )
+
 # Call parser startup method.
-#
 parser.prestart
 
-#
-# Call interactive mode for check state-machine.
-#
 $fout.puts "<html>"
 $fout.puts "<body>"
 
@@ -281,7 +206,7 @@ $fout.close
 
 Now developing of the simple parser has been finished. You can create test file, for example 'test.c':
 
-*source № 6*:
+*source № 3*:
 ```
 #include <stdlib.h>
 
@@ -297,9 +222,9 @@ void test2 ( void )
 }
 ```
 
-and do folow command in command line as:
+and execute folow command in command line as:
 
-    $ ruby <you parser script name>.rb test.c
+    $ ruby parser_example.rb test.c
 
 After work, we should see a file named 'index.html'.
 
@@ -323,28 +248,45 @@ After work, we should see a file named 'index.html'.
 
 **NOTE**: для ввода символа `'\'` необходимо набрать `'\\'`.
 
-Если все переходы работают как мы и ожидали, то
-можно перейти к написанию обработчиков наших состояний. Для этого допишем в наш скрипт код из *source № 2*
-в начало файла и вместо строки `parser.interactive_parser` добавим код из *source № 3* и *source № 4*.
-В результате должен получится код как на *source № 5*.
+Если все переходы работают как мы и ожидали, то можно перейти к написанию обработчиков наших состояний.
 
 Метод `doc_init` будет вызываться при входе в состояние, т.е. является конструктором состояния.
 Метод `doc_handler` будет вызываться каждый раз, до тех пор пока парсер находится в состоянии `comment-line` или `comment-block`.
 Метод `doc_fini` будет вызываться при выходе из состояния, т.е. является деструктором состояния.
 
-Обработчик состояния должен возвращать следующие типы данных:  `Fixnum` - индекс состояния на которое надо перейти (>=0),
-`NilClass` - оставаться в текущем состоянии (nil) и остальные типы данных которые будут расценены как ошибка
-обработки и метод `parse` вернет `false` (error). Во всех остальных случаях `parse` возвращает `true`.
+Обработчики состояния должены возвращать следующие значения: __nil__ - говорит парсер-машине о том,
+что процесс разбора продолжается и метод `.parse` вернет `true` и любое отличное от __nil__ значение
+будет разценено парсером как ошибка обработки и метод `.parse` вернет `false`. Для того, чтобы
+прервать процесс процесс парсинга, следует анализировать возвращаемое значение метода `,parse`,
+например так:
+```ruby
+parser = Iparser::Machine.new
+'123asd'.each_char do |c|
+  exit if !parser.parse(c)
+end
+```
+Также, каждое состояние имеет поле `branches`, для добавление индекса состояний на которые
+возможен переход из текущего состояния.
 
 Дополнительно для состояния `comment-block` мы указали символы, которые надо игнорировать,
 а именно `'*'` и `doc_handler` не будет вызываться при наличия данного символа во входном потоке.
+По окончанию мы получим файл с содержимым из *source № 2*.
 
-И наконец создадим тестовый файл с именем 'test.c' и наполним его содержимым из *source № 6*.
+И наконец создадим тестовый файл с именем 'test.c' и наполним его содержимым из *source № 3*.
 Наш простой парсер готов. Теперь запустим его набрав следующую команду:
 
     $ ruby parser_example.rb test.c
 
 По окончанию работы мы должны увидеть файл с именем 'index.html'.
+
+## Patch
+
+Details information for each patch.
+
+##### 1.1.4
+* Add method `.state_index` for return index of parser-state.
+* Add analyes result of any handler (init, fini, handler).
+* Now `entry` and `leave` templates you can set a string or regular expression.
 
 ## Development
 

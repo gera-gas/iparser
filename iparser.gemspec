@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["gera-gas"]
   spec.email         = ["gera_box@mail.ru"]
 
-  spec.summary       = %q{Universal parser machine to generate your specific parsers.}
-  spec.description   = %q{Universal parser machine implementation with interactive mode.}
+  spec.summary       = %q{Universal parser machine implementation with interactive mode. Can be used as a parser engine.}
+  spec.description   = %q{}
   spec.homepage      = "https://github.com/gera-gas/iparser"
   spec.license       = "MIT"
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
