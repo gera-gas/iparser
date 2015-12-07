@@ -109,6 +109,12 @@ module Iparser
 	s.ileave = 0
       end
     end
+    
+    # Return current state name.
+    def current_state ( )
+      return @chain.last.statename if @chain.size > 0
+      return nil
+    end
 
     # Initialize parser object,
     # should be called before call other methods.

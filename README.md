@@ -83,15 +83,15 @@ Check each state.
 **NOTE**: Type `'\\'` for input `'\'`.
 
 Each state has the following templates:
- 1 __entry__  - used for set condition (template) to entry state.
- 2 __leave__  - used for set condition (template) to leave state (return to previous state).
- 3 __ignore__ - used for set symbols to ignoring.
+1. __entry__  - used for set condition (template) to entry state.
+2. __leave__  - used for set condition (template) to leave state (return to previous state).
+3. __ignore__ - used for set symbols to ignoring.
  
 After successfully check, you can add handler to each state.
 Each state has the following handlers:
- 1 __init__ - is state contructor (called when entry to state).
- 2 __fini__ - is state destructor (called when leave state).
- 3 __handler__ - is state handler (called every time, is still in state).
+1. __init__ - is state contructor (called when entry to state).
+2. __fini__ - is state destructor (called when leave state).
+3. __handler__ - is state handler (called every time, is still in state).
 
 Each handler can return the following values: __nil__ - nothing is done (method `.parse` return `true`)
 and __any__ values for break parsing (method `.parse` return `false`). For break parsing process you
@@ -250,9 +250,9 @@ After work, we should see a file named 'index.html'.
 
 Если все переходы работают как мы и ожидали, то можно перейти к написанию обработчиков наших состояний.
 
-Метод `doc_init` будет вызываться при входе в состояние, т.е. является конструктором состояния.
-Метод `doc_handler` будет вызываться каждый раз, до тех пор пока парсер находится в состоянии `comment-line` или `comment-block`.
-Метод `doc_fini` будет вызываться при выходе из состояния, т.е. является деструктором состояния.
+* Метод `doc_init` будет вызываться при входе в состояние, т.е. является конструктором состояния.
+* Метод `doc_handler` будет вызываться каждый раз, до тех пор пока парсер находится в состоянии `comment-line` или `comment-block`.
+* Метод `doc_fini` будет вызываться при выходе из состояния, т.е. является деструктором состояния.
 
 Обработчики состояния должены возвращать следующие значения: __nil__ - говорит парсер-машине о том,
 что процесс разбора продолжается и метод `.parse` вернет `true` и любое отличное от __nil__ значение
@@ -282,6 +282,9 @@ end
 ## Patch
 
 Details information for each patch.
+
+##### 1.1.5
+* Add method `.current_state` for return name (String) of current state in parser-machine.
 
 ##### 1.1.4
 * Add method `.state_index` for return index of parser-state.
