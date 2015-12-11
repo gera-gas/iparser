@@ -111,6 +111,9 @@ We create the following handlers:
 For `comment-block` state set ignore char - `*`, and handler don't called to this chars.
 The result is a file with the following content of 'parser_example.rb':
 
+Constructors and destructors handlers will be getting array chars with own templates.
+For example `doc_init` getting follow array chars: `['/', '/', '/']`
+
 *source № 2*:
 ```ruby
 require 'iparser'
@@ -281,12 +284,16 @@ end
 
 Details information for each patch.
 
+##### 1.1.6
+* Fixed bug in analyse `leave` template (incorrectly handling, if `entry` and `leave` is begin with identical symbol).
+* Now `ignore` template enabled for all handlers (init, fini, handler).
+
 ##### 1.1.5
 * Add method `.current_state` for return name (String) of current state in parser-machine.
 
 ##### 1.1.4
 * Add method `.state_index` for return index of parser-state.
-* Add analyes result of any handler (init, fini, handler).
+* Add analyse result of any handler (init, fini, handler).
 * Now `entry` and `leave` templates you can set a string or regular expression.
 
 ## Development

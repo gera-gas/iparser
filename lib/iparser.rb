@@ -331,6 +331,7 @@ module Iparser
 	    return -1
 	  end
 	  backtag = 1
+	  mindex  = -1
 	else
 	  #
 	  # Нет совпадения, но если уже часть сравнений
@@ -380,7 +381,7 @@ module Iparser
 	end
 	#
 	# Анализ количества совпадений.
-	case mcount
+	case (mcount + backtag)
 	#
 	# нет совпадений.
 	when 0
@@ -389,8 +390,12 @@ module Iparser
 	# однозначное совпадение, но весь массив шаблонов
 	# еще не пройден.
 	when 1
-	  @matchstate[:state] = 1
-	  @matchstate[:index] = mindex
+	  if mindex == -1 then
+	    @matchstate[:state] = 2
+	  else
+	    @matchstate[:state] = 1
+	    @matchstate[:index] = mindex
+	  end
 	  return -2
 	#
 	# нет однозначного соответствия.
@@ -398,7 +403,7 @@ module Iparser
 	  return -2
 	end
 	
-      # Состояние точно определено.
+      # Состояние точно определено (переход в перед).
       # :state = 1
       when 1
 	i = @matchstate[:index]
@@ -429,6 +434,36 @@ module Iparser
 	@states[i].ientry = 0
 	@matchstate[:state] = 0
 	return -3
+	
+      # Состояние точно определено (возврат назад).
+      # :state = 2
+      when 2
+	if cmp( state.leave, state.ileave ) then
+	  state.ileave = state.ileave.next
+	  #
+	  # Возврат в предыдущее состояние.
+	  if state.ileave >= state.leave.size then
+	    @matchstate[:state] = 0
+	    return -1
+	  end
+	  return -2
+	end
+	#
+	# Нет совпадения, но если уже часть сравнений
+	# успешна, то возможно входной символ совпадает
+	# с предыдущими, уже совпавшими символами,
+	# т.е. как откат в режиме <wait>.
+	#
+	i = checkback( state.leave, state.ileave )
+
+	if i != -1 then
+	  state.ileave = i.next
+	  return -2
+	end
+	state.ileave = 0
+	@matchstate[:state] = 0
+	return -3
+	
       end # case @matchstate
     end
 
@@ -446,6 +481,11 @@ module Iparser
       # 
       @buffer << c
 
+      # Задан шаблон для игнорирования символов.
+      if @chain.last.ignore.size > 0 then
+        return retval if @chain.last.ignore.include?(c)
+      end
+      
       # Проверка переходов в другие состояния.
       r = classify( @chain.last )
 
@@ -487,36 +527,31 @@ module Iparser
 	# буфер надо обработать.
 	@buffer.each do |ch|
 	  @parserstate = 'miss'
-	  tag = true
-	  if @chain.last.ignore.size > 0 then
-	    tag = false if @chain.last.ignore.include?(ch)
-	  end
-	  if tag == true then
-	    r = @chain.last.run_handler( ch )
-	    #
-	    # Анализ результата обработки состояния.
-	    case r.class.to_s
-	    #
-	    # Fixnum - переход на любое состояние (индекс).
-	    when 'Fixnum'
-	      if( (r >= 0) && (r < @states.size) ) then
-		@chain << @states[r]
-		reset( )
-		@parserstate = 'hardset'
-	      else
-		raise TypeError, "Method <#{@chain.last.statename}> return incorrectly index."
-	      end
-	    #
-	    # nil - ничего не возвращает.
-	    when 'NilClass'
-	    #
-	    # else - расценивается как ошибка обработки.
-	    # обработка ложится на плечи разработчика.
+	  
+	  r = @chain.last.run_handler( ch )
+	  #
+	  # Анализ результата обработки состояния.
+	  case r.class.to_s
+	  #
+	  # Fixnum - переход на любое состояние (индекс).
+	  when 'Fixnum'
+	    if( (r >= 0) && (r < @states.size) ) then
+	      @chain << @states[r]
+	      reset( )
+	      @parserstate = 'hardset'
 	    else
-	      @parserstate = 'error'
-	      retval = false
-	      break
+	      raise TypeError, "Method <#{@chain.last.statename}> return incorrectly index."
 	    end
+	  #
+	  # nil - ничего не возвращает.
+	  when 'NilClass'
+	  #
+	  # else - расценивается как ошибка обработки.
+	  # обработка ложится на плечи разработчика.
+	  else
+	    @parserstate = 'error'
+	    retval = false
+	    break
 	  end
 	end
 	@buffer = []
