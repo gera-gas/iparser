@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.description   = %q{}
   spec.homepage      = "https://github.com/gera-gas/iparser"
   spec.license       = "MIT"
-  spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
+  spec.files         = ["lib/iparser.rb", "lib/iparser/state.rb", "lib/iparser/machine.rb", "lib/iparser/version.rb"]
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]

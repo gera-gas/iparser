@@ -64,7 +64,7 @@ ps_cblock.entry << '*'
 ps_cblock.leave << '*'
 ps_cblock.leave << '/'
 # Set template for ignore this state (String format only).
-ps_cblock.ignore << '*'
+ps_cblock.ignore[:handler] << '*'
 
 # Call parser startup method.
 parser.prestart
@@ -109,6 +109,7 @@ We create the following handlers:
 * Method `doc_fini` is state destructor.
 
 For `comment-block` state set ignore char - `*`, and handler don't called to this chars.
+If you want set ignore chars for all handlers, using `.ignore[:all]`.
 The result is a file with the following content of 'parser_example.rb':
 
 Constructors and destructors handlers will be getting array chars with own templates.
@@ -182,7 +183,7 @@ ps_cblock.entry << '*'
 ps_cblock.leave << '*'
 ps_cblock.leave << '/'
 # Set template for ignore this state (String format only).
-ps_cblock.ignore << '*'
+ps_cblock.ignore[:handler] << '*'
 # Add handler to 'commaent-block' state.
 ps_cblock.init( method(:doc_init) )
 ps_cblock.handler( method(:doc_handler) )
@@ -283,6 +284,11 @@ end
 ## Patch
 
 Details information for each patch.
+
+##### 1.1.7
+* Now `ignore` template enabled deviding on two gruop: `.ignore[:all]` - for all handlers, and `.ignore[:handler]` - for handler only.
+* Refactoring code
+* Corrected README example sources.
 
 ##### 1.1.6
 * Fixed bug in analyse `leave` template (incorrectly handling, if `entry` and `leave` is begin with identical symbol).
