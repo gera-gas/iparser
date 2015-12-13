@@ -286,7 +286,7 @@ end
 Details information for each patch.
 
 ##### 1.1.7
-* Now `ignore` template enabled deviding on two gruop: `.ignore[:all]` - for all handlers, and `.ignore[:handler]` - for handler only.
+* `ignore` templates enabled devided on two group: `.ignore[:all]` - for all handlers, and `.ignore[:handler]` - for handler only.
 * Refactoring code
 * Corrected README example sources.
 
