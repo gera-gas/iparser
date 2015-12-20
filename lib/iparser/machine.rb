@@ -452,27 +452,7 @@ module Iparser
 	    tag = false if @chain.last.ignore[:handler].include?(ch)
 	  end
 	  if tag == true then
-	    r = @chain.last.run_handler( ch )
-	    #
-	    # Анализ результата обработки состояния.
-	    case r.class.to_s
-	    #
-	    # Fixnum - переход на любое состояние (индекс).
-	    when 'Fixnum'
-	      if( (r >= 0) && (r < @states.size) ) then
-		@chain << @states[r]
-		reset( )
-		@parserstate = 'hardset'
-	      else
-		raise TypeError, "Method <#{@chain.last.statename}> return incorrectly index."
-	      end
-	    #
-	    # nil - ничего не возвращает.
-	    when 'NilClass'
-	    #
-	    # else - расценивается как ошибка обработки.
-	    # обработка ложится на плечи разработчика.
-	    else
+	    if @chain.last.run_handler( ch ) != nil then
 	      @parserstate = 'error'
 	      retval = false
 	      break
